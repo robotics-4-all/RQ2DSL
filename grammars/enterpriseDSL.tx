@@ -1,0 +1,359 @@
+// Enterprise DSL grammar
+// This grammar file defines a language for enterprise applications
+// with extensive support for OOP and functional programming features
+// Main model definition
+EnterpriseModel:
+    imports*=Import
+    elements*=ModelElement
+;
+// Import declaration for external modules
+Import:
+    'import' name=ID ('from' source=STRING)? 
+;
+// Any top-level model element
+ModelElement:
+    FunctionDefinition |
+    ClassDefinition |
+    InterfaceDefinition |
+    Statement |
+    Comment
+;
+// Class definition with inheritance and interface implementation
+ClassDefinition:
+    abstractModifier?='abstract'? 'class' name=ID
+    typeParameters=TypeParameters?
+    ('extends' parentClass=[ClassDefinition:FQN])?
+    ('implements' interfaces+=[InterfaceDefinition:FQN][','])?
+    '{' 
+        members*=ClassMember
+    '}'
+;
+// Type parameters for generic types
+TypeParameters:
+    '<' typeParams+=TypeParameter[','] '>'
+;
+// Individual type parameter, potentially with bounds
+TypeParameter:
+    name=ID ('extends' bound=[ClassDefinition:FQN])?
+;
+// Interface definition
+InterfaceDefinition:
+    'interface' name=ID 
+    typeParameters=TypeParameters?
+    ('extends' parentInterfaces+=[InterfaceDefinition:FQN][','])?
+    '{' 
+        methods*=MethodDeclaration
+    '}'
+;
+// Member of a class (property, method, constructor)
+ClassMember:
+    PropertyDeclaration |
+    MethodDeclaration |
+    ConstructorDeclaration
+;
+// Property declaration with visibility and type
+PropertyDeclaration:
+    visibility=Visibility name=ID ':' type=Type ('=' initialValue=Expression)?
+;
+// Method declaration with parameters and return type
+MethodDeclaration:
+    visibility=Visibility async?='async'? name=ID
+    '(' parameters*=Parameter[','] ')' '->' returnType=Type
+    ('{' statements*=Statement '}' | ';')
+;
+// Constructor definition for classes
+ConstructorDeclaration:
+    'constructor' '(' parameters*=Parameter[','] ')' 
+    '{' statements*=Statement '}'
+;
+// Parameter for methods and functions
+Parameter:
+    name=ID ':' type=Type
+;
+// Visibility modifiers for class members
+Visibility:
+    'public' | 'private' | 'protected'
+;
+// Type definition, including primitives, arrays, and custom types
+Type:
+    (ListType | DictionaryType | SimpleType)
+;
+// Simple type reference (primitive or user-defined)
+SimpleType:
+    name=FQN typeArguments=TypeArguments?
+;
+// Type arguments for generics
+TypeArguments:
+    '<' types+=Type[','] '>'
+;
+// List type definition
+ListType:
+    'list' '<' elementType=Type '>'
+;
+// Dictionary type definition
+DictionaryType:
+    'dict'
+;
+// Function definition
+FunctionDefinition:
+    'function' name=ID 
+    '(' parameters*=Parameter[','] ')' '->' returnType=Type
+    '{' statements*=Statement '}'
+;
+// Various statements supported in the language
+Statement:
+    VariableDeclaration |
+    VariableAssignment |
+    ReturnStatement |
+    IfStatement |
+    ForLoop |
+    ThreadSplit |
+    ThreadRejoin |
+    TryCatch |
+    ThrowStatement |
+    MatchStatement |
+    FunctionCall |
+    MethodInvocation |
+    PrintStatement |
+    TaggedStatement |
+    GotoStatement |
+    ListenStatement |
+    TriggerStatement |
+    DelayStatement |
+    Comment
+;
+// Variable declaration with type
+VariableDeclaration:
+    'var' name=ID ':' type=Type ('=' initialValue=Expression)?
+;
+// Variable assignment
+VariableAssignment:
+    variable=LValue '=' value=Expression
+;
+// Represents a value that can be assigned to (variable or property access)
+LValue:
+    VariableReference | PropertyAccess | IndexedAccess
+;
+// Return statement in functions/methods
+ReturnStatement:
+    'return' expression=Expression
+;
+// If-else conditional statement
+IfStatement:
+    'if' condition=Expression
+    '{' ifStatements*=Statement '}'
+    ('else' '{' elseStatements*=Statement '}')?
+;
+// Loop construct
+ForLoop:
+    'for' loopVariable=ID 'in' collection=Expression
+    '{' statements*=Statement '}'
+;
+// Multithreading with split/rejoin
+ThreadSplit:
+    'split' '{'
+        threads*=ThreadBlock
+    '}'
+;
+// Individual thread block
+ThreadBlock:
+    'thread' name=ID '{' statements*=Statement '}'
+;
+// Thread rejoin point
+ThreadRejoin:
+    'rejoin'
+;
+// Exception handling with try/catch/finally
+TryCatch:
+    'try' '{' 
+        tryStatements*=Statement 
+    '}' 
+    catches*=CatchClause
+    ('finally' '{' finallyStatements*=Statement '}')?
+;
+// Individual catch clause
+CatchClause:
+    'catch' exception=[ClassDefinition:FQN] ('as' exceptionVariable=ID)? '{' 
+        statements*=Statement 
+    '}'
+;
+// Throw an exception
+ThrowStatement:
+    'throw' exception=Expression
+;
+// Pattern matching
+MatchStatement:
+    'match' expression=Expression '{' 
+        cases+=MatchCase
+    '}'
+;
+// Case in pattern matching
+MatchCase:
+    'case' pattern=Pattern ('->' '{' statements*=Statement '}')
+;
+// Pattern for matching
+Pattern:
+    ValuePattern | TypePattern | WildcardPattern | GuardedPattern
+;
+// Match a specific value
+ValuePattern:
+    value=Expression
+;
+// Match a specific type
+TypePattern:
+    typeName=ID name=ID
+;
+// Wildcard pattern (_)
+WildcardPattern:
+    '_'
+;
+// Pattern with guard condition
+GuardedPattern:
+    basePattern=TypePattern 'when' condition=Expression
+;
+// Function call
+FunctionCall:
+    function=[FunctionDefinition:FQN] '(' arguments*=Expression[','] ')'
+;
+// Method invocation on an object
+MethodInvocation:
+    (await?='await')? (object=Expression '.')? method=ID '(' arguments*=Expression[','] ')'
+;
+// Print statement
+PrintStatement:
+    'print' '(' expression=Expression ')'
+;
+// Statement with a tag for goto
+TaggedStatement:
+    tag=ID ':' statement=Statement
+;
+// Goto statement for flow control
+GotoStatement:
+    'goto' target=ID
+;
+// Event listener registration
+ListenStatement:
+    'listen' 'for' eventName=ID '{' statements*=Statement '}'
+;
+// Trigger an event
+TriggerStatement:
+    'trigger' eventName=ID ('with' eventData=Expression)?
+;
+// Delay execution
+DelayStatement:
+    'delay' milliseconds=INT
+;
+// All possible expressions
+Expression:
+    LambdaExpression |
+    LogicalExpression |
+    ComparisonExpression |
+    ArithmeticExpression |
+    ObjectCreation |
+    Literal |
+    LValue
+;
+// Lambda expression (closure)
+LambdaExpression:
+    'lambda' |
+    (('(' parameters*=Parameter[','] ')' | param=ID) '->' 
+        (expression=Expression | '{' statements*=Statement '}'))
+;
+// Logical expressions (AND, OR, etc.)
+LogicalExpression:
+    left=Expression operator=LogicalOperator right=Expression
+;
+// Comparison expressions (>, <, ==, etc.)
+ComparisonExpression:
+    left=Expression operator=ComparisonOperator right=Expression
+;
+// Arithmetic expressions (+, -, *, /)
+ArithmeticExpression:
+    left=Expression operator=ArithmeticOperator right=Expression |
+    '-' expression=Expression |
+    '(' inner=Expression ')'
+;
+// Object creation with new
+ObjectCreation:
+    'new' className=FQN typeArguments=TypeArguments? '(' arguments*=Expression[','] ')'
+;
+// Literals for primitive values
+Literal:
+    StringLiteral | NumberLiteral | BooleanLiteral | ListLiteral | DictLiteral | NullLiteral
+;
+// String literal
+StringLiteral:
+    value=STRING
+;
+// Numeric literal
+NumberLiteral:
+    value=NUMBER
+;
+// Boolean literal
+BooleanLiteral:
+    value=BOOL
+;
+// List literal
+ListLiteral:
+    '[' items*=Expression[','] ']'
+;
+// Dictionary literal
+DictLiteral:
+    '{' (items*=DictItem[','])? '}'
+;
+// Dictionary item (key-value pair)
+DictItem:
+    key=Expression ':' value=Expression
+;
+// Null literal
+NullLiteral:
+    'null'
+;
+// Variable reference
+VariableReference:
+    variable=ID
+;
+// Property access (object.property)
+PropertyAccess:
+    object=Expression '.' property=ID
+;
+// Indexed access (array[index] or dict[key])
+IndexedAccess:
+    container=Expression '[' index=Expression ']'
+;
+// Comments in the code
+Comment:
+    SingleLineComment | MultiLineComment
+;
+// Single line comment
+SingleLineComment:
+    /\/\/.*$/
+;
+// Multi-line comment
+MultiLineComment:
+    /\/\*(.|\n)*?\*\//
+;
+// Logical operators
+LogicalOperator:
+    'and' | 'or' | 'not' | 'xor' | 'nor' | 'xnor' | 'nand'
+;
+// Comparison operators
+ComparisonOperator:
+    '==' | '!=' | '>' | '<' | '>=' | '<=' | 'is' | 'is not' | 'in' | 'not in' | 'has'
+;
+// Arithmetic operators
+ArithmeticOperator:
+    '+' | '-' | '*' | '/' | '%'
+;
+// Fully qualified name (for references)
+FQN:
+    ID ('.' ID)*
+;
+// Built-in types
+BuiltinType:
+    'string' | 'number' | 'boolean' | 'void' | 'list' | 'dict'
+;
+// Boolean values
+BOOL:
+    'true' | 'false'
+;

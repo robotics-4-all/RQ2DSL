@@ -1,0 +1,182 @@
+// configurationDSL grammar definition
+// Root rule for the entire model
+ConfigModel:
+    statements*=Statement
+;
+// Statement can be one of many different types
+Statement:
+    VariableDeclaration      |
+    VariableAssignment       |
+    ConditionalStatement     |
+    ForLoopStatement         |
+    ListOperation            |
+    PrintStatement           |
+    Comment
+;
+// Variable declaration with type annotation
+VariableDeclaration:
+    'var' name=ID ':' type=Type
+;
+// Supported variable types
+Type:
+    'string' | 'number' | 'boolean' | 'list'
+;
+// Variable assignment
+VariableAssignment:
+    variable=[VariableDeclaration:ID] '=' expression=Expression
+;
+// Expressions can be literals, operations, or variable references
+Expression:
+    StringExpression         |
+    MathExpression           |
+    BooleanExpression        |
+    ListExpression           |
+    FunctionCall             |
+    Variable
+;
+// String expressions
+StringExpression:
+    value=STRING | concatenation=StringConcatenation
+;
+// String concatenation
+StringConcatenation:
+    left=StringExpressionTerm '+' right=StringExpressionTerm
+;
+// Terms for string concatenation
+StringExpressionTerm:
+    value=STRING | variable=Variable | function=FunctionCall
+;
+// Mathematical expressions
+MathExpression:
+    left=Term (operator=MathOperator right=Term)*
+;
+// Term for mathematical expressions
+Term:
+    left=Factor (operator=HighPriorityOperator right=Factor)*
+;
+// Factor for mathematical expressions
+Factor:
+    value=NUMBER | variable=Variable | function=FunctionCall | '(' expression=MathExpression ')'
+;
+// Math operators
+MathOperator:
+    '+' | '-'
+;
+// Higher priority operators
+HighPriorityOperator:
+    '*' | '/'
+;
+// Boolean expressions
+BooleanExpression:
+    ComparisonExpression | LogicalExpression | BooleanLiteral | variable=Variable
+;
+// Comparison expressions
+ComparisonExpression:
+    left=ComparisonOperand operator=ComparisonOperator right=ComparisonOperand
+;
+// Operands for comparison
+ComparisonOperand:
+    value=NUMBER | value=STRING | value=BOOL | variable=Variable | function=FunctionCall
+;
+// Comparison operators
+ComparisonOperator:
+    '==' | '!=' | '<' | '<=' | '>' | '>='
+;
+// Logical expressions
+LogicalExpression:
+    left=BooleanExpression operator=LogicalOperator right=BooleanExpression
+;
+// Logical operators
+LogicalOperator:
+    'and' | 'or'
+;
+// Boolean literal
+BooleanLiteral:
+    value=BOOL
+;
+// List expressions
+ListExpression:
+    '[' items*=ListItem[','] ']'
+;
+// List items
+ListItem:
+    value=STRING | value=NUMBER | value=BOOL | variable=Variable
+;
+// Variable reference
+Variable:
+    name=[VariableDeclaration:ID]
+;
+// Function call (for string operations, list operations, etc.)
+FunctionCall:
+    StringFunction | ListFunction | RangeFunction
+;
+// String operations
+StringFunction:
+    LengthFunction | SubstringFunction
+;
+// String length function
+LengthFunction:
+    'length' '(' value=Expression ')'
+;
+// Substring function
+SubstringFunction:
+    'substring' '(' value=Expression ',' start=MathExpression ',' end=MathExpression ')'
+;
+// List operations
+ListFunction:
+    ListGetFunction | ListLengthFunction
+;
+// List get by index
+ListGetFunction:
+    variable=[VariableDeclaration:ID] '.' 'get' '(' index=MathExpression ')'
+;
+// List length
+ListLengthFunction:
+    variable=[VariableDeclaration:ID] '.' 'length' '(' ')'
+;
+// Range function for loop iteration
+RangeFunction:
+    'range' '(' start=MathExpression ',' end=MathExpression ')'
+;
+// Conditional statement (if-else)
+ConditionalStatement:
+    'if' condition=BooleanExpression '{' 
+        thenStatements*=Statement 
+    '}' ('else' '{' 
+        elseStatements*=Statement 
+    '}')?
+;
+// For loop statement
+ForLoopStatement:
+    'for' iterator=ID 'in' iterable=RangeFunction '{'
+        statements*=Statement
+    '}'
+;
+// List operations as standalone statements
+ListOperation:
+    AppendOperation | RemoveOperation
+;
+// List append operation
+AppendOperation:
+    list=[VariableDeclaration:ID] '.' 'append' '(' item=Expression ')'
+;
+// List remove operation
+RemoveOperation:
+    list=[VariableDeclaration:ID] '.' 'remove' '(' item=Expression ')'
+;
+// Print statement
+PrintStatement:
+    'print' '(' value=Expression ')'
+;
+// Comments support
+Comment:
+    SingleLineComment | MultiLineComment
+;
+// Single-line comment
+SingleLineComment:
+    /\/\/.*?$/
+;
+// Multi-line comment
+MultiLineComment:
+    /\/\*(.|\n)*?\*\//
+;

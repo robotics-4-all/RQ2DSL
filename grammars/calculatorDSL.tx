@@ -1,0 +1,58 @@
+/*
+    Grammar for calculatorDSL language supporting variable declarations,
+    assignments, basic math operations, and print statements
+*/
+// Root rule representing a complete program
+SimpleProgram:
+    statements*=Statement
+;
+// Statement can be either a variable declaration, assignment or print statement
+Statement:
+    VariableDeclaration | 
+    VariableAssignment |
+    PrintStatement
+;
+// Variable declaration rule: 'var' followed by a variable name
+VariableDeclaration:
+    'var' name=ID
+;
+// Variable assignment rule: variable name, equals sign, and an expression
+VariableAssignment:
+    variable=[VariableDeclaration:ID] '=' expression=Expression
+;
+// Print statement rule: 'print' followed by a variable reference
+PrintStatement:
+    'print' variable=[VariableDeclaration:ID]
+;
+// Expression rule for mathematical operations
+Expression:
+    left=Term (op=AddOp right=Term)*
+;
+// Term rule for multiplication and division operations
+Term:
+    left=Factor (op=MulOp right=Factor)*
+;
+// Factor can be a variable reference or a number
+Factor:
+    VariableReference | Number | ('(' expression=Expression ')')
+;
+// Variable reference rule for referring to previously declared variables
+VariableReference:
+    variable=[VariableDeclaration:ID]
+;
+// Number rule for numeric literals
+Number:
+    value=NUMBER
+;
+// Addition operators
+AddOp:
+    '+' | '-'
+;
+// Multiplication operators
+MulOp:
+    '*' | '/'
+;
+// Comments
+Comment: 
+    /\/\/.*$/
+;

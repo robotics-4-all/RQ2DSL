@@ -1,0 +1,160 @@
+// Grammar for pseudoDSL language
+// Root rule for the entire program
+Program:
+    statements*=Statement
+;
+// Rule for different types of statements
+Statement:
+    VariableDeclaration |
+    VariableAssignment |
+    PrintStatement |
+    DelayStatement |
+    IfStatement |
+    ForLoop |
+    ThreadBlock |
+    RejoinStatement |
+    TaggedStatement |
+    GotoStatement |
+    Comment
+;
+// Rule for variable declarations with type annotations (R1)
+VariableDeclaration:
+    'var' name=ID ':' type=Type
+;
+// Rule for variable types
+Type:
+    'string' | 'number' | 'boolean' | 'list' | 'dict'
+;
+// Rule for variable assignments (R2)
+VariableAssignment:
+    variable=Variable '=' expression=Expression
+;
+// Rule for variables
+Variable:
+    name=ID ('.' method=MethodCall)?
+;
+// Rule for method calls on variables
+MethodCall:
+    name=ID '(' (parameters+=Expression[','])? ')'
+;
+// Rule for expressions (R2, R6, R11)
+Expression:
+    Term (operator=Operator Term)*
+;
+// Rule for operators in expressions
+Operator:
+    '+' | '-' | '*' | '/' | 'and' | 'or'
+;
+// Rule for terms in expressions
+Term:
+    Literal | 
+    Variable | 
+    ListLiteral | 
+    DictionaryLiteral | 
+    MethodExpression |
+    LengthExpression |
+    SubstringExpression |
+    '(' Expression ')'
+;
+// Rule for method expressions
+MethodExpression:
+    variable=ID '.' method=MethodCall
+;
+// Rule for length function (R6)
+LengthExpression:
+    'length' '(' expression=Expression ')'
+;
+// Rule for substring function (R6)
+SubstringExpression:
+    'substring' '(' string=Expression ',' start=Expression ',' end=Expression ')'
+;
+// Rule for literals
+Literal:
+    STRING | NUMBER | BooleanLiteral
+;
+// Rule for boolean literals
+BooleanLiteral:
+    'true' | 'false'
+;
+// Rule for list literals (R10)
+ListLiteral:
+    '[' (elements+=Expression[','])? ']'
+;
+// Rule for dictionary literals (R12)
+DictionaryLiteral:
+    '{' (entries+=DictEntry[','])? '}'
+;
+// Rule for dictionary entries
+DictEntry:
+    key=STRING ':' value=Expression
+;
+// Rule for print statements (R7)
+PrintStatement:
+    'print' expression=Expression
+;
+// Rule for delay statements (R9)
+DelayStatement:
+    'delay' time=NUMBER
+;
+// Rule for conditional statements (R3, R5)
+IfStatement:
+    'if' condition=Condition '{' 
+        thenStatements*=Statement 
+    '}' ('else' '{' 
+        elseStatements*=Statement 
+    '}')?
+;
+// Rule for conditions in if statements
+Condition:
+    ComparisonExpression (logicalOp=LogicalOperator ComparisonExpression)*
+;
+// Rule for logical operators
+LogicalOperator:
+    'and' | 'or'
+;
+// Rule for comparison expressions
+ComparisonExpression:
+    left=Expression operator=ComparisonOperator right=Expression
+;
+// Rule for comparison operators
+ComparisonOperator:
+    '==' | '!=' | '>' | '<' | '>=' | '<='
+;
+// Rule for for loops (R4, R5)
+ForLoop:
+    'for' variable=ID 'in' 'range' '(' start=Expression ',' end=Expression ')' '{' 
+        statements*=Statement 
+    '}'
+;
+// Rule for thread blocks (R13)
+ThreadBlock:
+    'split' '{' threads*=Thread '}'
+;
+// Rule for thread definitions
+Thread:
+    'thread' name=ID '{' statements*=Statement '}'
+;
+// Rule for rejoining threads (R14)
+RejoinStatement:
+    'rejoin'
+;
+// Rule for tagged statements (R15)
+TaggedStatement:
+    tag=ID ':' statements*=Statement
+;
+// Rule for goto statements (R15)
+GotoStatement:
+    'goto' tag=ID
+;
+// Rule for comments (R8)
+Comment:
+    SingleLineComment | MultiLineComment
+;
+// Rule for single-line comments
+SingleLineComment:
+    /\/\/.*?$/
+;
+// Rule for multi-line comments
+MultiLineComment:
+    /\/\*(.|\n)*?\*\//
+;
